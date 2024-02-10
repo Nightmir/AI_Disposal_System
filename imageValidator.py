@@ -14,3 +14,6 @@ for filepath in Path(data_dir).rglob("*"):
         elif img_type not in img_type_accepted_by_tf:
             print(f"{filepath} is a {img_type}, not accepted by TensorFlow")
             os.remove(filepath)
+
+
+            #another test
