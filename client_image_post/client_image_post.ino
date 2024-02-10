@@ -1,25 +1,26 @@
-/*
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-cam-post-image-photo-server/
-  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files.
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-*/
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include "soc/soc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "esp_camera.h"
 
-const char* ssid = "WillYouProveWorthy?";
-const char* password = "probablynot";
 
-String serverName = "192.168.2.10";   
-//String serverName = "example.com";   
+// defines pins numbers
+const int trigPin = 2;
+const int echoPin = 4;
+// defines variables
+
+
+
+
+long duration;
+int distance;
+int binl = 30;
+const char* ssid = "samir";
+const char* password = "nightmir";
+
+String serverName = "192.168.212.146";
+//String serverName = "example.com";
 
 String serverPath = "/upload";  // Flask upload route
 
@@ -51,14 +52,14 @@ WiFiClient client;
 
 
 void setup() {
-  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); 
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
   Serial.begin(115200);
 
   WiFi.mode(WIFI_STA);
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
-  WiFi.begin(ssid, password);  
+  WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     delay(500);
@@ -68,7 +69,7 @@ void setup() {
   Serial.println(WiFi.localIP());
 
   camera_config_t config;
-  
+
   config.ledc_channel = LEDC_CHANNEL_0;
   config.ledc_timer = LEDC_TIMER_0;
   config.pin_d0 = Y2_GPIO_NUM;
@@ -101,7 +102,7 @@ void setup() {
     config.frame_size = FRAMESIZE_CIF;
     config.jpeg_quality = 12;  //0-63 lower number means higher quality
   }
-  
+
   // camera init
   esp_err_t err = esp_camera_init(&config);
   if (err != ESP_OK) {
@@ -109,17 +110,85 @@ void setup() {
     delay(1000);
     ESP.restart();
   }
-
-  sendPhoto(); 
+//ultasound
+  pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+  pinMode(echoPin, INPUT); // Sets the echoPin as an Input
 }
 
 void loop() {
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= timerInterval) {
+
+//ultrasound
+    // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delay(20)
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delay(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  // Calculating the distance
+  distance = duration * 0.034 / 2;
+  // Prints the distance on the Serial Monitor
+  //Serial.print("Distance: ");
+
+
+  if (distance < binl) {
     sendPhoto();
-    previousMillis = currentMillis;
+    delay(2000);
   }
+  else{
+    delay(250);
+  }
+
+
+
+
 }
+
+
+
+
+
+
+
+// // defines pins numbers
+// const int trigPin = 2;
+// const int echoPin = 3;
+// // defines variables
+// long duration;
+// int distance;
+// int binl = 30;
+// void setup() {
+//   pinMode(trigPin, OUTPUT); // Sets the trigPin as an Output
+//   pinMode(echoPin, INPUT); // Sets the echoPin as an Input
+//   Serial.begin(9600); // Starts the serial communication
+// }
+// void loop() {
+//   // Clears the trigPin
+//   digitalWrite(trigPin, LOW);
+//   delayMicroseconds(20000);
+//   // Sets the trigPin on HIGH state for 10 micro seconds
+//   digitalWrite(trigPin, HIGH);
+//   delay(10);
+//   digitalWrite(trigPin, LOW);
+//   // Reads the echoPin, returns the sound wave travel time in microseconds
+//   duration = pulseIn(echoPin, HIGH);
+//   // Calculating the distance
+//   distance = duration * 0.034 / 2;
+//   // Prints the distance on the Serial Monitor
+//   //Serial.print("Distance: ");
+//   if(distance < binl){
+//     Serial.println(distance);
+//   }
+//   //else{
+//    // Serial.println("Waiting for drop...");
+//  // }
+// }
+
+
+
+
 
 String sendPhoto() {
   String getAll;
@@ -133,11 +202,11 @@ String sendPhoto() {
     delay(1000);
     ESP.restart();
   }
-  
+
   Serial.println("Connecting to server: " + serverName);
 
   if (client.connect(serverName.c_str(), serverPort)) {
-    Serial.println("Connection successful!");    
+    Serial.println("Connection successful!");
     String head = "--ESP32\r\nContent-Disposition: form-data; name=\"imageFile\"; filename=\"esp32-cam.jpg\"\r\nContent-Type: image/jpeg\r\n\r\n";
     String tail = "\r\n--ESP32--\r\n";
 
@@ -145,7 +214,7 @@ String sendPhoto() {
     uint16_t extraLen = head.length() + tail.length();
     uint16_t totalLen = imageLen + extraLen;
     client.println("POST " + serverPath + " HTTP/1.1");
-    
+
     //header starts
     client.println("Host: " + serverName);
     client.println("Content-Length: " + String(totalLen));
@@ -154,7 +223,7 @@ String sendPhoto() {
     //header ends
 
     client.print(head);
-    
+
     uint8_t *fbBuf = fb->buf;
     size_t fbLen = fb->len;
     for (size_t n=0; n<fbLen; n=n+1024) {
@@ -168,17 +237,17 @@ String sendPhoto() {
       }
     }
     client.print(tail);
-    
+
     esp_camera_fb_return(fb);
-    
-    
+
+
     long startTimer = millis();
     boolean state = false;
-    
+
     //reading
     while ((startTimer + timoutTimer) > millis()) {
       Serial.print(".");
-      delay(100);      
+      delay(100);
       while (client.available()) {
         char c = client.read();
         if (c == '\n') {
