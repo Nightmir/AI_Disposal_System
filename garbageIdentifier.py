@@ -12,7 +12,7 @@ import pathlib
 
 def train(e, b, h):
     # Load Data
-    data_dir = pathlib.Path("garbage_dataset_medium").with_suffix('')
+    data_dir = pathlib.Path("garbage_dataset_large").with_suffix('')
     image_count = len(list(data_dir.glob('*/*.jpg')))
 
     # Print image count
@@ -92,9 +92,8 @@ def train(e, b, h):
         validation_data=val_ds,
         epochs=epochs
     )
-    # Save the model if val accuracy is greater than 70%
     score = history.history['val_accuracy'][-1]
-    if score > 0.7:
+    if score > 0.84:
         model.save("" + str(batch_size) + "_" + str(img_height) + "_" + "_" + str(epochs) + "_" + str(score) + ".h5")
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
@@ -104,7 +103,7 @@ def train(e, b, h):
 
     epochs_range = range(epochs)
 
-    plt.figure(figsize=(8, 8))
+    plt.figure(figsize=(16, 8))
     plt.subplot(1, 2, 1)
     plt.plot(epochs_range, acc, label='Training Accuracy')
     plt.plot(epochs_range, val_acc, label='Validation Accuracy')
@@ -119,10 +118,10 @@ def train(e, b, h):
     plt.show()
 
 
-def guess(path):
+def guess(premadeModel,path):
     imageName = path.split("/")[-1]
     # Load model
-    model = keras.models.load_model(guessingModel)
+    model = keras.models.load_model(premadeModel)
     # Load image
     info = model.get_config()["layers"][0]["config"]["batch_input_shape"] # Returns pretty much every information about your model)
     length = info[1]
@@ -135,6 +134,7 @@ def guess(path):
     class_names = ['biological','cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
 
     predictions = model.predict(img_array)
+
     score = tf.nn.softmax(predictions[0])
     choice = class_names[np.argmax(score)]
     confidence = 100 * np.max(score)
@@ -143,12 +143,15 @@ def guess(path):
     if choice == "glass" or choice == "metal" or choice == "plastic":
         print(
             imageName+" most likely belongs in the blue bin with {:.2f} percent confidence.".format(confidence))
+        choice = "blue"
     elif choice == "cardboard" or choice == "paper":
         print(
             imageName+" most likely belongs in the black bin with {:.2f} percent confidence.".format(confidence))
+        choice = "black"
     elif choice == "biological" or choice == "trash":
         print(
             imageName+" most likely belongs in the green bin with {:.2f} percent confidence.".format(confidence))
+        choice = "green"
     print("")
     '''
     while True:
@@ -172,10 +175,9 @@ def guess(path):
             print("Image not found.")
             pass
     '''
-train(40, 16, 300)
+    return choice
+
+
 if __name__ == "__main__":
-    guessingModel = "16_180__40_0.7724160552024841.h5"
-    guess("C:/Users/Samir/Pictures/Saved Pictures/monstercan.jpg")
-    guess("spoon.jpg")
-    guess("C:/Users/Samir/Pictures/Saved Pictures/sprite.jpg")
-    guess("sprite.jpg")
+    train(350,16,100)
+    print("Hello World")
