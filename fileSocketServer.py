@@ -4,6 +4,8 @@ import asyncio
 import garbageIdentifier
 from websockets.server import serve
 
+ip = "192.168.145.115"
+model = "16_100__350_0.8463114500045776.h5"
 async def test(websocket):
     print("Client Found")
     while True:
@@ -11,11 +13,11 @@ async def test(websocket):
         with open("espcapture.jpg", "wb") as f:
             f.write(imgdata)
         print("Image received")
-        guess = garbageIdentifier.guess("16_100__350_0.8463114500045776.h5", "espcapture.jpg")
+        guess = garbageIdentifier.guess(model, "espcapture.jpg")
         await websocket.send(guess)
         print("Sent", guess)
 async def main():
-    async with serve(test, "192.168.2.10", 8080):
+    async with serve(test, ip, 8080):
         print("Server started")
         await asyncio.Future()  # run forever
 

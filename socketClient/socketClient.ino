@@ -8,9 +8,9 @@
 
 #define FLASH_PIN 4
 
-const char* ssid = "WillYouProveWorthy?";  // Your wifi name like "myWifiNetwork"
-const char* password = "probablynot";      // Your password to the wifi network like "password123"
-const char* websocket_server_host = "192.168.2.10";
+const char* ssid = "samir";  // Your wifi name like "myWifiNetwork"
+const char* password = "nightmir";      // Your password to the wifi network like "password123"
+const char* websocket_server_host = "192.168.145.115";
 const uint16_t websocket_server_port1 = 8080;
 using namespace websockets;
 WebsocketsClient client;
@@ -18,10 +18,17 @@ WebsocketsClient client;
 Servo binServo,dropServo;      // create servo object to control a servo
 const int binServoPin = 12;  // GPIO pin used to connect the servo control (digital out)
 const int dropServoPin = 13;
-const int WButtonPin = 1;
-const int RButtonPin = 0;
-const int BButtonPin = 3;
-const int modeSwitchPin = 2;
+// const int BButtonPin = 0; //Deprecated pins
+// const int RButtonPin = 3;
+// const int WButtonPin = 1;
+const int buttonPin = 3;
+const int modeSwitchPin = 1;
+int buttonVal = 0;
+
+//Analog values for buttons
+const int greenValue = 0;
+const int blackValue = 0;
+const int blueValue = 0;
 
 const int trigPin = 15;
 const int echoPin = 14;
@@ -32,8 +39,10 @@ int currbin = 0;
 
 int flashlight = 0;
 int ADC_Max = 4096;
-bool manual = false;
-int delayBeforeDrop = 1200;
+
+bool manual = true;
+
+int delayBeforeDrop = 50;//should be 1200
 long duration;
 int distance;
 
@@ -115,14 +124,15 @@ void setup() {
   ESP32PWM::allocateTimer(1);
   ESP32PWM::allocateTimer(2);
   ESP32PWM::allocateTimer(3);
+
   binServo.setPeriodHertz(50);  // Standard 50hz servo
+  //dropServo.setPeriodHertz(50);
+
   binServo.attach(binServoPin, 500, 2500);
-  dropServo.attach(dropServoPin,500,2500);
+  //dropServo.attach(dropServoPin,500,2500);
 
   
-  //pinMode(WButtonPin, INPUT); // pin 16 causes issues
-  pinMode(RButtonPin, INPUT);
-  pinMode(BButtonPin, INPUT);
+  pinMode(modeSwitchPin, INPUT);
 
 
   //Camera Setup
@@ -182,39 +192,43 @@ void setup() {
 
 void loop() {
   //assign "manual" boolean value based on switch state
+  manual = digitalRead(modeSwitchPin);
   if (true) {// ultrasound is tripped ( use itemDetected() )
-
     if (manual) {  // manual mode condition
-      if (digitalRead(WButtonPin) == HIGH) {
+      buttonVal = analogRead(buttonPin);
+      if (buttonVal>880) {
         binServo.write(0);
         delay(delayBeforeDrop);
-        drop();
-      } else if (digitalRead(RButtonPin) == HIGH) {
+        //drop();
+      } else if (buttonVal>573) {
         binServo.write(80);
         delay(delayBeforeDrop);
-        drop();
-      } else if (digitalRead(BButtonPin) == HIGH) {
+        //drop();
+      } else if (buttonVal>204) {
         binServo.write(170);
         delay(delayBeforeDrop);
-        drop();
-      }
+        //drop();
+      } 
 
       //delay before drop can be optimized by tracking current position
       //We can later send image to server to update model with picture of manual item (???)
       delay(50);
     }
 
-    else if (!manual && millis() < 50000 ) {//auto mode condition 
+    else if (!manual) {//auto mode condition 
+
       camera_fb_t* fb = esp_camera_fb_get();  //Snap image
       if (!fb) {
         esp_camera_fb_return(fb);
         return;
       }
 
-      if (fb->format != PIXFORMAT_JPEG) { return; }
-      Serial.print("Image Captured at ");
-      Serial.println(millis());
+      Serial.print("Image Captured at "); //Debugging information
+      Serial.println(millis()); 
+
+      if (fb->format != PIXFORMAT_JPEG) { return; } // Format binary to jpeg
       client.sendBinary((const char*)fb->buf, fb->len);  //Send image
+
       esp_camera_fb_return(fb);
 
       while (!client.poll()) { delay(10); }  //keep polling until the response is availible

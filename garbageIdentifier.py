@@ -69,6 +69,7 @@ def train(e, b, h):
             layers.RandomZoom(0.1),
         ]
     )
+    # Create Model
     model = Sequential([
         data_augmentation,
         layers.Rescaling(1. / 255),
@@ -181,3 +182,4 @@ def guess(premadeModel,path):
 if __name__ == "__main__":
     train(350,16,100)
     print("Hello World")
+    guess("16_100__350_0.8463114500045776.h5","C:/Users/Samir/Pictures/Saved Pictures/IMG_20210531_175236.jpg")
