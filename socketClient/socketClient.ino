@@ -8,45 +8,40 @@
 
 #define FLASH_PIN 4
 
-const char* ssid = "samir";  // Your wifi name like "myWifiNetwork"
-const char* password = "nightmir";      // Your password to the wifi network like "password123"
-const char* websocket_server_host = "192.168.145.115";
+
+const char* ssid = "WillYouProveWorthy?";  // Your wifi name like "myWifiNetwork"
+const char* password = "probablynot";      // Your password to the wifi network like "password123"
+const char* websocket_server_host = "192.168.2.10";
 const uint16_t websocket_server_port1 = 8080;
 using namespace websockets;
 WebsocketsClient client;
 
-Servo binServo,dropServo;      // create servo object to control a servo
+Servo binServo, dropServo;   // create servo object to control a servo
 const int binServoPin = 12;  // GPIO pin used to connect the servo control (digital out)
 const int dropServoPin = 13;
-// const int BButtonPin = 0; //Deprecated pins
-// const int RButtonPin = 3;
-// const int WButtonPin = 1;
-const int buttonPin = 3;
-const int modeSwitchPin = 1;
-int buttonVal = 0;
-
-//Analog values for buttons
-const int greenValue = 0;
-const int blackValue = 0;
-const int blueValue = 0;
 
 const int trigPin = 15;
 const int echoPin = 14;
 
-const int detectionThreshold = 12;// minimum distance before triggering
+const int bluePin = 3;
+const int blackPin = 2;
+const int greenPin = 1;
 
-int currbin = 0;
+const int blueAngle = 0;
+const int greenAngle = 80;
+const int blackAngle = 170;
 
+const int detectionThreshold = 6;  // minimum distance before triggering
+
+int startTime;
 int flashlight = 0;
 int ADC_Max = 4096;
 
-bool manual = true;
-
-int delayBeforeDrop = 50;//should be 1200
+int delayBeforeDrop = 600;  //should be 1200
 long duration;
 int distance;
 
-bool itemDetected(){//add ultrasound code here
+bool itemDetected() {  //add ultrasound code here
 
   digitalWrite(trigPin, LOW);
   delay(20);
@@ -68,14 +63,14 @@ bool itemDetected(){//add ultrasound code here
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
-    Serial.println("Connection Opened");
+    //Serial.println("Connection Opened");
   } else if (event == WebsocketsEvent::ConnectionClosed) {
-    Serial.println("Connection Closed");
+    //Serial.println("Connection Closed");
     ESP.restart();
   } else if (event == WebsocketsEvent::GotPing) {
-    Serial.println("Got a Ping!");
+    //Serial.println("Got a Ping!");
   } else if (event == WebsocketsEvent::GotPong) {
-    Serial.println("Got a Pong!");
+    //Serial.println("Got a Pong!");
   }
 }
 
@@ -98,24 +93,48 @@ void onMessageCallback(WebsocketsMessage message) {
       }
     }
 
-    Serial.print("Key: ");
-    Serial.println(key);
-    Serial.print("Value: ");
-    Serial.println(value);
+    //Serial.print("Key: ");
+    //Serial.println(key);
+    //Serial.print("Value: ");
+    //Serial.println(value);
   } else {
-    Serial.println(data);
+    //Serial.println(data);
     //Assign servo position based on AI verdict response (STRING COMPARISON MIGHT NOT WORK AS INTENDED)
     if (data == "blue") {
-      binServo.write(0);
-    } else if (data == "black") {
-      binServo.write(80);
+      binServo.write(blueAngle);
+      delay(delayBeforeDrop);
+      drop();
+      
+
     } else if (data == "green") {
-      binServo.write(170);
+      drop();
+
+    } else if (data == "black") {
+      binServo.write(blackAngle);
+      delay(delayBeforeDrop);
+      drop();
     }
   }
 }
 
-void drop(){ //code for controlling dropServo for dropping the item
+void sendImage(){
+  camera_fb_t* fb = esp_camera_fb_get();  //Snap image
+    if (!fb) {
+      esp_camera_fb_return(fb);
+      return;
+    }
+    //Serial.print("Image Captured at ");  //Debugging information
+    //Serial.println(millis());
+    if (fb->format != PIXFORMAT_JPEG) { return; }      // Format binary to jpeg
+    client.sendBinary((const char*)fb->buf, fb->len);  //Send image
+
+    esp_camera_fb_return(fb);
+}
+
+void drop() {  //code for controlling dropServo for dropping the item
+  //open door
+  delay(600);
+  //close door
 }
 void setup() {
   //SERVO SETUP
@@ -131,10 +150,12 @@ void setup() {
   binServo.attach(binServoPin, 500, 2500);
   //dropServo.attach(dropServoPin,500,2500);
 
-  
-  pinMode(modeSwitchPin, INPUT);
+  binServo.write(greenAngle);
 
-
+  pinMode(FLASH_PIN, OUTPUT);
+  pinMode(blackPin,INPUT);
+  pinMode(bluePin,INPUT);
+  pinMode(greenPin,INPUT);
   //Camera Setup
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -173,72 +194,68 @@ void setup() {
   s->set_raw_gma(s, 1);
 
   WiFi.begin(ssid, password);
-  Serial.println("Connecting to Wifi");
+  //Serial.println("Connecting to Wifi");
   while (WiFi.status() != WL_CONNECTED) {
-    Serial.print(".");
+    //Serial.print(".");
     delay(500);
   }
-  Serial.println("Connected!");
-  pinMode(FLASH_PIN, OUTPUT);
+  //Serial.println("Connected!");
+
   client.onMessage(onMessageCallback);
   client.onEvent(onEventsCallback);
 
-  Serial.begin(115200);
+  //Serial.begin(115200);
   while (!client.connect(websocket_server_host, websocket_server_port1, "/")) {
-    Serial.print(".");
+    //Serial.print(".");
     delay(500);
   }
 }
 
 void loop() {
-  //assign "manual" boolean value based on switch state
-  manual = digitalRead(modeSwitchPin);
-  if (true) {// ultrasound is tripped ( use itemDetected() )
-    if (manual) {  // manual mode condition
-      buttonVal = analogRead(buttonPin);
-      if (buttonVal>880) {
-        binServo.write(0);
-        delay(delayBeforeDrop);
-        //drop();
-      } else if (buttonVal>573) {
-        binServo.write(80);
-        delay(delayBeforeDrop);
-        //drop();
-      } else if (buttonVal>204) {
-        binServo.write(170);
-        delay(delayBeforeDrop);
-        //drop();
-      } 
-
-      //delay before drop can be optimized by tracking current position
-      //We can later send image to server to update model with picture of manual item (???)
-      delay(50);
+  if (digitalRead(blackPin)) {
+    analogWrite(FLASH_PIN,20);
+    client.send("black");
+    startTime = millis();
+    //Wait for object, then capture and drop it.
+    while(false){//use !itemDetected()
+      if(millis()-startTime>10){client.send("timeout");return;}
     }
-
-    else if (!manual) {//auto mode condition 
-
-      camera_fb_t* fb = esp_camera_fb_get();  //Snap image
-      if (!fb) {
-        esp_camera_fb_return(fb);
-        return;
-      }
-
-      Serial.print("Image Captured at "); //Debugging information
-      Serial.println(millis()); 
-
-      if (fb->format != PIXFORMAT_JPEG) { return; } // Format binary to jpeg
-      client.sendBinary((const char*)fb->buf, fb->len);  //Send image
-
-      esp_camera_fb_return(fb);
-
-      while (!client.poll()) { delay(10); }  //keep polling until the response is availible
-                                             //servo control based on response is dealt with in event handler
-
-      Serial.println();
-
-      delay(1000);
+    sendImage();
+    binServo.write(blackAngle);
+    delay(delayBeforeDrop);
+    drop();
+    
+  } else if (digitalRead(greenPin)) {
+    analogWrite(FLASH_PIN,20);
+    client.send("green");
+    startTime = millis();
+    while(false){//use !itemDetected()
+      if(millis()-startTime>10){client.send("timeout");return;}
     }
+    sendImage();
+    drop();
+
+  } else if (digitalRead(bluePin)) {
+    analogWrite(FLASH_PIN,20);
+    client.send("blue");
+    startTime = millis();
+    while(false){//use !itemDetected()
+      if(millis()-startTime>10){client.send("timeout");return;}
+    }
+    sendImage();
+    binServo.write(blueAngle);
+    delay(delayBeforeDrop);
+    drop(); 
+
+  } else if (false) {  // ultrasound is tripped ( use itemDetected() )
+    client.send("auto");
+    sendImage();
+    while (!client.poll()) { delay(10); }  //keep polling until the response is availible
+                                           //servo control based on response is dealt with in event handler
+    delay(1000);
   }
+  analogWrite(FLASH_PIN,0);
+  binServo.write(greenAngle);
   client.poll();  //keep connection alive by catching pings
   delay(100);
 }
