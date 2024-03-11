@@ -9,9 +9,9 @@
 #define FLASH_PIN 4
 
 
-const char* ssid = "WillYouProveWorthy?";  // Your wifi name like "myWifiNetwork"
-const char* password = "probablynot";      // Your password to the wifi network like "password123"
-const char* websocket_server_host = "192.168.2.10";
+const char* ssid = "samir";  // Your wifi name like "myWifiNetwork"
+const char* password = "nightmir";      // Your password to the wifi network like "password123"
+const char* websocket_server_host = "192.168.241.115";
 const uint16_t websocket_server_port1 = 8080;
 using namespace websockets;
 WebsocketsClient client;
@@ -37,7 +37,7 @@ int startTime;
 int flashlight = 0;
 int ADC_Max = 4096;
 
-int delayBeforeDrop = 600;  //should be 1200
+int delayBeforeDrop = 1000;  //should be 1200
 long duration;
 int distance;
 

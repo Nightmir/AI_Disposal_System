@@ -1,8 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-import PIL
 import tensorflow as tf
-import h5py
 
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -10,9 +8,9 @@ from tensorflow.keras.models import Sequential
 import pathlib
 
 
-def train(e, b, h):
+def train(e, b, h,directory):
     # Load Data
-    data_dir = pathlib.Path("garbage_dataset_large").with_suffix('')
+    data_dir = pathlib.Path(directory).with_suffix('')
     image_count = len(list(data_dir.glob('*/*.jpg')))
 
     # Print image count
@@ -132,7 +130,7 @@ def guess(premadeModel,path):
     )
     img_array = keras.utils.img_to_array(img)
     img_array = tf.expand_dims(img_array, 0)  # Create a batch
-    class_names = ['biological','cardboard', 'glass', 'metal', 'paper', 'plastic', 'trash']
+    class_names = ['black',"blue","green"]
 
     predictions = model.predict(img_array)
 
@@ -141,6 +139,7 @@ def guess(premadeModel,path):
     confidence = 100 * np.max(score)
 
     print(choice)
+    print(        imageName+" most likely belongs in the {} bin with {:.2f} percent confidence.".format(choice,confidence))
     if choice == "glass" or choice == "metal" or choice == "plastic":
         print(
             imageName+" most likely belongs in the blue bin with {:.2f} percent confidence.".format(confidence))
@@ -154,32 +153,10 @@ def guess(premadeModel,path):
             imageName+" most likely belongs in the green bin with {:.2f} percent confidence.".format(confidence))
         choice = "green"
     print("")
-    '''
-    while True:
-        imageToIdentify = input("Enter an image: ")
-        sunflower_path = "C:/Users/Samir/Pictures/Saved Pictures/" + imageToIdentify
-        try:
-            img = tf.keras.utils.load_img(
-                sunflower_path, target_size=(img_height, img_width)
-            )
-            img_array = tf.keras.utils.img_to_array(img)
-            img_array = tf.expand_dims(img_array, 0)  # Create a batch
-    
-            predictions = model.predict(img_array)
-            score = tf.nn.softmax(predictions[0])
-    
-            print(
-                "This image most likely belongs to {} with a {:.2f} percent confidence."
-                .format(class_names[np.argmax(score)], 100 * np.max(score))
-            )
-        except:
-            print("Image not found.")
-            pass
-    '''
+
     return choice
 
 
 if __name__ == "__main__":
-    train(350,16,100)
+    guess("16_100__350_0.8941256999969482.h5","cereal.jpg")
     print("Hello World")
-    guess("16_100__350_0.8463114500045776.h5","C:/Users/Samir/Pictures/Saved Pictures/IMG_20210531_175236.jpg")
