@@ -1,14 +1,12 @@
-#!/usr/bin/env python
-
 import asyncio
 import os
 
 import garbageIdentifier
 from websockets.server import serve
 
-ip = "192.168.241.115"
-model = "16_100__350_0.8463114500045776.h5"
-
+ip = "192.168.206.115"
+model = "16_100__350_0.8941256999969482.h5"
+garbageIdentifier.guess(model, "spoon.jpg")
 
 async def test(websocket):
     print("Client Found")

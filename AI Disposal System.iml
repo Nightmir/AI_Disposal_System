@@ -6,4 +6,7 @@
     <orderEntry type="jdk" jdkName="Python 3.10" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PackageRequirementsSettings">
+    <option name="requirementsPath" value="C:\Users\Samir\IdeaProjects\AI_Disposal_System\requirements.txt" />
+  </component>
 </module>

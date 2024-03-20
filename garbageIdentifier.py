@@ -21,7 +21,6 @@ def train(e, b, h,directory):
     img_height = h
     img_width = h
     epochs = e
-    colVals = 1
     # training dataset
     train_ds = tf.keras.utils.image_dataset_from_directory(
         data_dir,
@@ -135,6 +134,7 @@ def guess(premadeModel,path):
     predictions = model.predict(img_array)
 
     score = tf.nn.softmax(predictions[0])
+    print(score)
     choice = class_names[np.argmax(score)]
     confidence = 100 * np.max(score)
 
