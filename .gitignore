@@ -1,4 +1,4 @@
-/garbage_dataset_small/
-/garbage_dataset_large/
-/garbage_dataset_large_condensed/
-/garbage_dataset_custom/
+.idea/garbage_dataset_small/
+.idea/garbage_dataset_large/
+.idea/garbage_dataset_large_condensed/
+.idea/garbage_dataset_custom/
