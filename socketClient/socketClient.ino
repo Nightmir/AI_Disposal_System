@@ -11,40 +11,47 @@
 
 const char* ssid = "samir";         // Your wifi name like "myWifiNetwork"
 const char* password = "nightmir";  // Your password to the wifi network like "password123"
-const char* websocket_server_host = "192.168.206.115";
+const char* websocket_server_host = "192.168.156.115";
 const uint16_t websocket_server_port1 = 8080;
 using namespace websockets;
 WebsocketsClient client;
 
 Servo binServo, dropServo;   // create servo object to control a servo
-const int binServoPin = 12;  // GPIO pin used to connect the servo control (digital out)
+
+//Servo pins
+const int binServoPin = 12;
 const int dropServoPin = 13;
 
+//Ultrasonic pins
 const int trigPin = 15;
 const int echoPin = 14;
 
+//Button pins
 const int bluePin = 3;
 const int blackPin = 2;
 const int greenPin = 1;
 
+//Bin angles
 const int blueAngle = 0;
 const int greenAngle = 80;
 const int blackAngle = 170;
 
+
 const int detectionThreshold = 25;  // minimum distance before triggering
+
 
 int startTime;
 int flashlight = 0;
 int ADC_Max = 4096;
 
-int delayBeforeDrop = 1000;  //should be 1200
+int delayBeforeDrop = 1000;
 
-int dropSpeed = 50;
+int dropSpeed = 1000;
 int dropDelay = 1000/dropSpeed;
 long duration;
 int distance;
 
-bool itemDetected() {  //add ultrasound code here
+bool itemDetected() {// Ultrasound code for item detection
 
   digitalWrite(trigPin, LOW);
   delay(20);
@@ -62,21 +69,6 @@ bool itemDetected() {  //add ultrasound code here
   }
   return false;
 }
-int dist() {  //add ultrasound code here
-
-  digitalWrite(trigPin, LOW);
-  delay(20);
-  // Sets the trigPin on HIGH state for 10 micro seconds
-  digitalWrite(trigPin, HIGH);
-  delay(10);
-  digitalWrite(trigPin, LOW);
-  // Reads the echoPin, returns the sound wave travel time in microseconds
-  duration = pulseIn(echoPin, HIGH);
-  // Calculating the distance
-  distance = duration * 0.034 / 2;
-
-  return distance;
-}
 
 void onEventsCallback(WebsocketsEvent event, String data) {
   if (event == WebsocketsEvent::ConnectionOpened) {
@@ -91,25 +83,27 @@ void onEventsCallback(WebsocketsEvent event, String data) {
   }
 }
 
-void onMessageCallback(WebsocketsMessage message) {
+
+void onMessageCallback(WebsocketsMessage message) {// Handles messages received from server
   String data = message.data();
   int index = data.indexOf("=");
-  
-  if (data == "blue") {
+
+  if (data == "green") {
+      drop();
+  }
+  else if (data == "blue") {
     binServo.write(blueAngle);
     delay(delayBeforeDrop);
     drop();
-
-  } else if (data == "green") {
-    drop();
-
-  } else if (data == "black") {
+  }
+  else if (data == "black") {
     binServo.write(blackAngle);
     delay(delayBeforeDrop);
     drop();
   }
 
-  if (index != -1) {
+
+  if (index != -1) {// Key value pair from server for controlling hardware
     String key = data.substring(0, index);
     String value = data.substring(index + 1);
   }
@@ -123,19 +117,20 @@ void sendImage() {
   }
   //Serial.print("Image Captured at ");  //Debugging information
   //Serial.println(millis());
+
   if (fb->format != PIXFORMAT_JPEG) { return; }      // Format binary to jpeg
   client.sendBinary((const char*)fb->buf, fb->len);  //Send image
 
-  esp_camera_fb_return(fb);
+  esp_camera_fb_return(fb);// Increment buffer pointer
 }
 
 void drop() {  //code for controlling dropServo for dropping the item
-  for( int i=180;i>120;i--){
+  for(int i=180;i>120;i--){
     dropServo.write(i);
     delay(dropDelay);
   }
-  delay(100);
-  for( int i=120;i<180;i++){
+  delay(500);
+  for(int i=120;i<180;i++){
     dropServo.write(i);
     delay(dropDelay);
   }
@@ -188,7 +183,7 @@ void setup() {
 
   config.xclk_freq_hz = 10000000;
   config.pixel_format = PIXFORMAT_JPEG;
-  config.frame_size = FRAMESIZE_SVGA;
+  config.frame_size = FRAMESIZE_QVGA;
   config.jpeg_quality = 40;
   config.fb_count = 2;
   config.grab_mode = CAMERA_GRAB_LATEST;
@@ -231,6 +226,7 @@ void loop() {
         return;
       }
     }
+    delay(1000);// Wait for item to settle before taking image
     sendImage();
     binServo.write(blackAngle);
     delay(delayBeforeDrop);
@@ -245,6 +241,7 @@ void loop() {
         return;
       }
     }
+    delay(1000);// Wait for item to settle before taking image
     sendImage();
     drop();
 
@@ -257,24 +254,24 @@ void loop() {
         return;
       }
     }
+    delay(250);// Wait for item to settle before taking image
     sendImage();
     binServo.write(blueAngle);
     delay(delayBeforeDrop);
     drop();
 
   } else if (itemDetected()) {  // ultrasound is tripped ( use itemDetected() )
+    delay(250);//wait for item to settle after detection
     client.send("auto");
     sendImage();
     while (!client.poll()) { delay(10); }  //keep polling until the response is availible
                                            //servo control based on response is dealt with in event handler
-    delay(1000);
   }
   else if (false) {  //printing statement for debugging through server
     client.send("print");
-    client.send(String(dist()));
     delay(1000);
   }
-  analogWrite(FLASH_PIN, 0);
+  
   binServo.write(greenAngle);
   client.poll();  //keep connection alive by catching pings
   delay(100);

@@ -24,7 +24,7 @@ def train(e, b, h,directory):
     # training dataset
     train_ds = tf.keras.utils.image_dataset_from_directory(
         data_dir,
-        validation_split=0.2,
+        validation_split=0.20,
         subset="training",
         seed=123,
         image_size=(img_height, img_width),
@@ -33,7 +33,7 @@ def train(e, b, h,directory):
     # validation dataset
     val_ds = tf.keras.utils.image_dataset_from_directory(
         data_dir,
-        validation_split=0.2,
+        validation_split=0.20,
         subset="validation",
         seed=123,
         image_size=(img_height, img_width),
@@ -91,8 +91,8 @@ def train(e, b, h,directory):
         epochs=epochs
     )
     score = history.history['val_accuracy'][-1]
-    if score > 0.84:
-        model.save("" + str(batch_size) + "_" + str(img_height) + "_" + "_" + str(epochs) + "_" + str(score) + ".h5")
+    if score > 0.950:
+        model.save("{}_{}_{}_{}.h5".format(epochs,batch_size,img_height,score))
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
 
@@ -134,12 +134,10 @@ def guess(premadeModel,path):
     predictions = model.predict(img_array)
 
     score = tf.nn.softmax(predictions[0])
-    print(score)
     choice = class_names[np.argmax(score)]
     confidence = 100 * np.max(score)
 
-    print(choice)
-    print(        imageName+" most likely belongs in the {} bin with {:.2f} percent confidence.".format(choice,confidence))
+    #print(        imageName+" most likely belongs in the {} bin with {:.2f} percent confidence.".format(choice,confidence))
     if choice == "glass" or choice == "metal" or choice == "plastic":
         print(
             imageName+" most likely belongs in the blue bin with {:.2f} percent confidence.".format(confidence))
@@ -158,5 +156,5 @@ def guess(premadeModel,path):
 
 
 if __name__ == "__main__":
-    guess("16_100__350_0.8941256999969482.h5","cereal.jpg")
+    train(500,16,250,"garbage_dataset_custom")
     print("Hello World")
